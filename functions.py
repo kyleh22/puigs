@@ -2,37 +2,34 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
 
+import pandas as pd
+
 def find_combinations_export(df, target, output_file="output_combinations_optimized.xlsx"):
-    # Set the second row as column headers and remove metadata rows
+    # Set the first row as column headers
     original_headings = df.iloc[0]  # Store the first row for later re-use
-    print('')
-    print(original_headings)
-    print('')
-    print(df)
-    
     df = df.rename(columns=dict(zip(df.columns, original_headings)))
 
     # Remove the row used for headings and reset the index
     df = df[1:].reset_index(drop=True)
-    print('new df')
-    print(df)
-    df = df[1:]  # Skip the first two rows (metadata and titles)
-    df.reset_index(drop=True, inplace=True)
+    df = df[1:].reset_index(drop=True)  # Skip the second metadata row
 
-    # Convert the third column (Qty) to numeric
+    # Convert the "Qty" column to numeric
     df.iloc[:, 2] = pd.to_numeric(df.iloc[:, 2], errors="coerce")
 
-    print("Column headings in the dataset:")
-    for i, col in enumerate(df.columns[:3]):
-        print(f"{i+1}st Column: {col}")
+    # Extract numeric values from the "Leadtime Weeks" column and add a new column for numeric lead times
+    leadtime_column = "Leadtime Weeks"
+    df[leadtime_column] = df[leadtime_column].str.extract(r"(\d+)").astype(float)
+
+    # Sort by Leadtime Weeks (ascending) and Qty (descending)
+    df.sort_values(by=[leadtime_column, df.columns[2]], ascending=[True, False], inplace=True)
 
     remaining_df = df.copy()
     group_count = 1
     group_dfs = []
 
     while not remaining_df.empty:
-        # Sort by the 3rd column (Qty) descending
-        remaining_df.sort_values(by=remaining_df.columns[2], ascending=False, inplace=True)
+        # Sort by "Leadtime Weeks" (shortest first) and "Qty" (largest first)
+        remaining_df.sort_values(by=[leadtime_column, remaining_df.columns[2]], ascending=[True, False], inplace=True)
 
         current_sum = 0
         current_group = []
@@ -105,9 +102,9 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
         formatted_dfs.extend([title_row, group_df, pd.DataFrame(columns=group_df.columns)])
 
     combined_df = pd.concat(formatted_dfs, ignore_index=True)
-    print(combined_df)
-    
+
     return combined_df
+
 
 # Assuming `df` is your dataframe
 def clean_group_column(df):
