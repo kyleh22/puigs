@@ -8,7 +8,7 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
     df = df.rename(columns=dict(zip(df.columns, original_headings)))
 
     # Remove the row used for headings and reset the index
-    df = df[0:].reset_index(drop=True)
+    df = df[1:].reset_index(drop=True)
     
     # Convert the "Qty" column to numeric
     df.iloc[:, 2] = pd.to_numeric(df.iloc[:, 2], errors="coerce")
@@ -87,38 +87,23 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
 
         group_count += 1
 
-    # Handle the last container without worrying about the target
+    # Handle the last container without forcing the target
     if not remaining_df.empty:
         final_group = remaining_df.copy()
         final_group["Group"] = f"Container {group_count}"
 
         # Add a total row for the final group
         total_row = {col: None for col in final_group.columns}
-        total_row[df.columns[2]] = final_group.iloc[:, 2].sum()
+        total_row[df.columns[2]] = final_group.iloc[:, 2].sum()  # Sum the actual quantities
         total_row["Group"] = f"Total for Container {group_count}"
         final_group = pd.concat([final_group, pd.DataFrame([total_row])], ignore_index=True)
 
         group_dfs.append(final_group)
 
-    # Handle cases where the sum is less than the target
-    for group_df in group_dfs:
-        total_qty = group_df.iloc[:-1, 2].sum()  # Exclude the total row
-        if total_qty < target:
-            total_row = group_df.iloc[-1].copy()
-            total_row[df.columns[2]] = total_qty
-            total_row["Group"] = f"Total for Container {group_count}"
-            group_df.iloc[-1] = total_row
-
     # Combine all groups into a single DataFrame
-    formatted_dfs = []
-    for i, group_df in enumerate(group_dfs):
-        title_row = pd.DataFrame([[None] * (len(group_df.columns) - 1) + [f"Container {i + 1}"]], columns=group_df.columns)
-        formatted_dfs.extend([title_row, group_df, pd.DataFrame(columns=group_df.columns)])
-
-    combined_df = pd.concat(formatted_dfs, ignore_index=True)
+    combined_df = pd.concat(group_dfs, ignore_index=True)
 
     return combined_df
-
 
 def clean_group_column(df):
     # Replace 'Group' column values with an empty string where 'Qty' is None
