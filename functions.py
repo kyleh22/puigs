@@ -100,6 +100,15 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
 
         group_dfs.append(final_group)
 
+    # Handle cases where the sum is less than the target
+    for group_df in group_dfs:
+        total_qty = group_df.iloc[:-1, 2].sum()  # Exclude the total row
+        if total_qty < target:
+            total_row = group_df.iloc[-1].copy()
+            total_row[df.columns[2]] = total_qty
+            total_row["Group"] = f"Total for Container {group_count}"
+            group_df.iloc[-1] = total_row
+
     # Combine all groups into a single DataFrame
     formatted_dfs = []
     for i, group_df in enumerate(group_dfs):
@@ -110,13 +119,17 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
 
     return combined_df
 
+
 def clean_group_column(df):
     # Replace 'Group' column values with an empty string where 'Qty' is None
     df.loc[df['Qty'].isna(), 'Group'] = ''
     return df
 
-def export_df_to_excel(df, output_file="output_combinations_optimized.xlsx"):
+def export_df_to_excel(df, input_file, target):
     # Export to Excel
+    str_target = str(target)
+    str_input = str(input_file)
+    output_file = str_input+"_"+str_target+'.xlsx'
     df.to_excel(output_file, index=False, sheet_name="All Groups", engine="openpyxl")
 
     # Style the Excel file

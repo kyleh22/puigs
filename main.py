@@ -23,7 +23,7 @@ def main():
         try:
             optimized_groups_df = funcs.find_combinations_export(df, target_value)
             clean_df = funcs.clean_group_column(optimized_groups_df)
-            funcs.export_df_to_excel(clean_df)
+            funcs.export_df_to_excel(clean_df,file_name, target_value)
             print("Processing complete. The results have been saved to 'output_combinations.xlsx'.")
         except Exception as e:
             print(f"Error during processing. Details: {e}")
