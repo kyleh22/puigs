@@ -2,8 +2,6 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
 
-import pandas as pd
-
 def find_combinations_export(df, target, output_file="output_combinations_optimized.xlsx"):
     # Set the first row as column headers
     original_headings = df.iloc[0]  # Store the first row for later re-use
@@ -28,37 +26,30 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
     group_dfs = []
 
     while not remaining_df.empty:
-        # Sort by "Leadtime Weeks" (shortest first) and "Qty" (largest first)
-        remaining_df.sort_values(by=[leadtime_column, remaining_df.columns[2]], ascending=[True, False], inplace=True)
-
         current_sum = 0
         current_group = []
         indexes_to_remove = []
 
         for index, row in remaining_df.iterrows():
             qty = row.iloc[2]
+
             if current_sum + qty <= target:
                 current_sum += qty
                 current_group.append(row)
                 indexes_to_remove.append(index)
+            elif current_sum < target:
+                # Split the row to fit the remaining capacity
+                split_amount = target - current_sum
+                split_row = row.copy()
+                split_row.iloc[2] = split_amount
+                current_group.append(split_row)
 
-        # Handle remaining items that need splitting, but only if not the last container
-        if current_sum < target and len(remaining_df) > len(indexes_to_remove):
-            for index, row in remaining_df.iterrows():
-                if index not in indexes_to_remove:
-                    qty = row.iloc[2]
-                    if current_sum + qty > target:
-                        split_amount = target - current_sum
+                # Update the remaining quantity in the original row
+                remaining_df.at[index, remaining_df.columns[2]] -= split_amount
+                break
 
-                        # Create a copy of the row and update the quantity column
-                        split_row = row.copy()
-                        split_row.iloc[2] = split_amount
-                        current_group.append(split_row)
-
-                        # Update the original row in remaining_df
-                        remaining_df.at[index, remaining_df.columns[2]] -= split_amount
-                        current_sum = target
-                        break
+        # Remove used items from remaining_df
+        remaining_df.drop(index=indexes_to_remove, inplace=True)
 
         # Create a DataFrame for the current group
         group_df = pd.DataFrame(current_group, columns=remaining_df.columns)
@@ -72,13 +63,9 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
 
         group_dfs.append(group_df)
 
-        # Remove used items from remaining_df
-        remaining_df.drop(index=indexes_to_remove, inplace=True)
+        # Re-sort remaining_df to maintain lead time priority
         remaining_df = remaining_df[remaining_df.iloc[:, 2] > 0]  # Remove rows with zero quantity
-
-        # Break if this is the last container
-        if remaining_df.empty:
-            break
+        remaining_df.sort_values(by=[leadtime_column, remaining_df.columns[2]], ascending=[True, False], inplace=True)
 
         group_count += 1
 
@@ -105,13 +92,9 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
 
     return combined_df
 
-
-# Assuming `df` is your dataframe
 def clean_group_column(df):
     # Replace 'Group' column values with an empty string where 'Qty' is None
     df.loc[df['Qty'].isna(), 'Group'] = ''
-    # print('\nAfter cleaning\n')
-    # print(df)
     return df
 
 def export_df_to_excel(df, output_file="output_combinations_optimized.xlsx"):
@@ -132,17 +115,8 @@ def export_df_to_excel(df, output_file="output_combinations_optimized.xlsx"):
     )
     center_alignment = Alignment(horizontal="center", vertical="center")
 
-    # Get column indices for "Qty" and the second column
-    qty_col_idx = None
-    group_col_idx = 2  # Second column index (1-based)
-
-    # Check if the second column contains "ORDER"
-    second_col_title = ws.cell(row=1, column=group_col_idx).value
-    if not second_col_title or "ORDER" not in second_col_title.upper():
-        print(f"The second column does not contain 'ORDER'. Found: '{second_col_title}'")
-        return
-
     # Find "Qty" column
+    qty_col_idx = None
     for idx, cell in enumerate(ws[1], start=1):  # Assuming the first row contains headers
         if cell.value == "Qty":
             qty_col_idx = idx
@@ -155,11 +129,11 @@ def export_df_to_excel(df, output_file="output_combinations_optimized.xlsx"):
 
     # Apply styles
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-        is_total_row = row[group_col_idx - 1].value and "Total for Container" in str(row[group_col_idx - 1].value)
-        is_title_row = row[group_col_idx - 1].value and "Container" in str(row[group_col_idx - 1].value) and "Total" not in str(row[group_col_idx - 1].value)
+        is_total_row = row[1].value and "Total for Container" in str(row[1].value)
+        is_title_row = row[1].value and "Container" in str(row[1].value) and "Total" not in str(row[1].value)
 
         for idx, cell in enumerate(row, start=1):
-            if idx == qty_col_idx or idx == group_col_idx:  # Only highlight the Qty and second column
+            if idx == qty_col_idx:  # Only highlight the Qty column
                 if is_total_row:
                     cell.fill = highlight_fill
             if cell.value is not None:  # Apply borders to non-empty cells
@@ -169,6 +143,4 @@ def export_df_to_excel(df, output_file="output_combinations_optimized.xlsx"):
 
     # Save the updated workbook
     wb.save(output_file)
-
     print(f"Results exported to {output_file}")
-    return
