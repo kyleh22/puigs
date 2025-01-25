@@ -8,9 +8,8 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
     df = df.rename(columns=dict(zip(df.columns, original_headings)))
 
     # Remove the row used for headings and reset the index
-    df = df[1:].reset_index(drop=True)
-    df = df[1:].reset_index(drop=True)  # Skip the second metadata row
-
+    df = df[0:].reset_index(drop=True)
+    
     # Convert the "Qty" column to numeric
     df.iloc[:, 2] = pd.to_numeric(df.iloc[:, 2], errors="coerce")
 
@@ -25,6 +24,25 @@ def find_combinations_export(df, target, output_file="output_combinations_optimi
     group_count = 1
     group_dfs = []
 
+    # Handle items with Qty matching the target
+    exact_matches = remaining_df[remaining_df.iloc[:, 2] == target]
+    for index, row in exact_matches.iterrows():
+        group_df = pd.DataFrame([row], columns=remaining_df.columns)
+        group_df["Group"] = f"Container {group_count}"
+
+        # Add a total row for the group
+        total_row = {col: None for col in group_df.columns}
+        total_row[df.columns[2]] = target
+        total_row["Group"] = f"Total for Container {group_count}"
+        group_df = pd.concat([group_df, pd.DataFrame([total_row])], ignore_index=True)
+
+        group_dfs.append(group_df)
+        group_count += 1
+
+    # Remove exact matches from the remaining dataframe
+    remaining_df = remaining_df[remaining_df.iloc[:, 2] != target]
+
+    # Process the rest of the items
     while not remaining_df.empty:
         current_sum = 0
         current_group = []
