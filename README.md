@@ -6,10 +6,11 @@ This software processes Excel files containing inventory or order data. It organ
 
 Prerequisites
 
-Before using this software on your Mac, ensure the following are installed:
+Before using this software, ensure the following are installed:
 
 Python: Version 3.7 or higher.
-Most macOS versions come with Python pre-installed, but it may be outdated. Install the latest version from Python.org or via Homebrew:
+Mac: Most macOS versions come with Python pre-installed, but it may be outdated. Install the latest version from Python.org or via Homebrew:
+Microsoft: Go to the python.org website to download it
 
 brew install python
 
