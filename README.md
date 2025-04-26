@@ -10,7 +10,6 @@ Before using this software, ensure the following are installed:
 
 Python: Version 3.7 or higher.
 Mac: Most macOS versions come with Python pre-installed, but it may be outdated. Install the latest version from Python.org or via Homebrew:
-Microsoft: Go to the python.org website to download it
 
 brew install python
 
@@ -23,6 +22,18 @@ openpyxl
 Open the Terminal app (press Cmd + Space, type "Terminal", and hit Enter) and run:
 
 pip3 install pandas openpyxl
+
+Microsoft: 
+
+1. Go to the python.org website to download it. When installing, ensure to select 'add PATH' upon installation
+2. Check to make sure python is installed by opening terminal (search 'cmd' on windows and then select the 'Command Prompt' application)
+3. Copy and paste 'python --version' in the window and press enter. If you 'Python 3.13.3' or another number, it has been sucessfully installed
+4. Now copy and paste this in the terminal 'curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py'
+5. Once that is installed, copy and paste 'python get-pip.py'
+6. Now pip should be installed (the tool used to install other packages). You can check it's installed by typing 'pip --version'
+7. Now copy and paste 'pip install pandas'
+8. and also 'pip install openpyxl'
+9. Now the application should work
 
 Excel File: Ensure your Excel file meets the formatting requirements (see below) and is saved in the same folder as the script.
 
